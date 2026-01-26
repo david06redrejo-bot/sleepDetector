@@ -1,32 +1,62 @@
 # Real-Time Drowsiness Detection System
 
 ## Overview
-**SleepDetector** is a computer vision application designed to prevent driver drowsiness accidents. By leveraging the **MediaPipe Use Tasks API** for high-precision facial landmark detection, the system calculates the Eye Aspect Ratio (EAR) in real-time to monitor the user's eye state. If the eyes remain closed for a specific duration, an audible alarm is triggered.
-
-This project demonstrates the practical application of geometric computer vision and real-time state estimation.
+**Neuro-Vigilance** (formerly SleepDetector) is a dual-mode computer vision application designed to prevent driver drowsiness accidents. It leverages the **MediaPipe Tasks API** for high-precision facial landmark detection, calculating the Eye Aspect Ratio (EAR) to monitor alertness in real-time.
 
 ## Features
-- **Real-Time Tracking**: 30+ FPS face mesh inference on standard CPU.
-- **Robust Metrics**: Uses the Eye Aspect Ratio (EAR) metric for scale-invariant eye state estimation.
-- **Temporal Filtering**: Implements a state machine to filter out normal blinking.
-- **Audio Alerts**: Non-blocking asynchronous alarm system.
+- **Dual Interface**:
+    - **Web App**: Futuristic "Cyberpunk" UI via Streamlit (Browser-based).
+    - **Desktop**: Lightweight OpenCV implementation.
+- **Robust Metrics**: Uses EAR (Eye Aspect Ratio) for scale-invariant drowsy detection.
+- **Client-Side Audio**: Web version uses HTML5 injection for browser-safe alerts.
+- **Professional Architecture**: Structured package layout (`src/`) with dynamic path resolution.
+
+## Installation
+1. **Clone the Repository**:
+   ```bash
+   git clone https://github.com/david06redrejo-bot/sleepDetector.git
+   cd sleepDetector
+   ```
+2. **Install Dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   ```
 
 ## Usage
-1. **Installation**:
-   ```bash
-   pip install opencv-python mediapipe
-   ```
-2. **Run**:
-   ```bash
-   python main.py
-   ```
-3. **Calibration**:
-   Adjust `EYE_ASPECT_RATIO_THRESHOLD` in `config.py` to match your lighting conditions.
+
+### 🚀 Web Application (Recommended)
+Launch the modern Cyberpunk dashboard:
+```bash
+streamlit run app.py
+```
+*Access via browser at `http://localhost:8501`*
+
+### 💻 Desktop Version (Legacy)
+Run the classic OpenCV window:
+```bash
+python main.py
+```
+
+## Configuration
+Adjust system parameters in `src/config.py`:
+- `EYE_ASPECT_RATIO_THRESHOLD` (Default: 0.25)
+- `EYE_ASPECT_RATIO_CONSEC_FRAMES` (Default: 16)
+
+## Project Structure
+```text
+sleep_detector/
+├── app.py                 # Streamlit Web App Entry Point
+├── main.py                # Desktop App Entry Point
+├── assets/                # Static assets (CSS, Audio)
+├── models/                # MediaPipe Model Bundles
+└── src/                   # Source Code
+    ├── config.py          # Dynamic Configuration
+    ├── core/              # Logic & Inference
+    └── utils/             # Helper Functions
+```
 
 ## Technical Details
-The core logic relies on the 6-point eye landmark model:
 $$ EAR = \frac{||p_2 - p_6|| + ||p_3 - p_5||}{2 \times ||p_1 - p_4||} $$
-This ratio remains constant when eyes are open but tends to zero as the eyelids close.
 
 ## Author
 **David Redrejo**
