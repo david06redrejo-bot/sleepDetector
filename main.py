@@ -1,31 +1,27 @@
 """
 main.py
 
-Main application entry point.
-Orchestrates Video Capture, MediaPipe Inference, and State Estimation.
+Main application entry point (Desktop Version).
 """
 
 import cv2
 import mediapipe as mp
-import time
 import sys
 import os
 
-from config import *
-from utils.geometry import calculate_ear
-from utils.alarm import trigger_alarm, deactivate_alarm
+# Import from source package
+from src.config import *
+from src.utils.geometry import calculate_ear
+from src.utils.sound import trigger_alarm, deactivate_alarm
 
 def initialize_landmarker():
-    """
-    Sets up the MediaPipe Face Landmarker (Tasks API).
-    """
     BaseOptions = mp.tasks.BaseOptions
     FaceLandmarker = mp.tasks.vision.FaceLandmarker
     FaceLandmarkerOptions = mp.tasks.vision.FaceLandmarkerOptions
     VisionRunningMode = mp.tasks.vision.RunningMode
 
-    # Model path is now in the models/ subdirectory
-    model_path = os.path.join("models", "face_landmarker.task")
+    # Use dynamic path from config
+    model_path = os.path.join(MODELS_DIR, "face_landmarker.task")
 
     try:
         with open(model_path, 'r'): pass
@@ -47,7 +43,7 @@ def initialize_landmarker():
     return FaceLandmarker.create_from_options(options)
 
 def main():
-    print("[INFO] Starting Drowsiness Detection System...")
+    print("[INFO] Starting Drowsiness Detection System (Desktop)...")
     
     cap = cv2.VideoCapture(WEBCAM_ID)
     if not cap.isOpened():
@@ -56,15 +52,12 @@ def main():
 
     landmarker = initialize_landmarker()
     
-    # State Variables
     COUNTER = 0
     ALARM_ON = False
     
-    # Landmark Indices (Left and Right Eyes)
     LEFT_EYE = [33, 160, 158, 133, 153, 144]
     RIGHT_EYE = [362, 385, 387, 263, 373, 380]
 
-    # Timestamp for MediaPipe video mode
     frame_timestamp_ms = 0
 
     try:
@@ -74,12 +67,9 @@ def main():
                continue
 
             height, width, _ = image.shape
-            
-            # Convert BGR (OpenCV) to RGB (MediaPipe)
             image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=image_rgb)
 
-            # Inference
             frame_timestamp_ms += 33
             results = landmarker.detect_for_video(mp_image, frame_timestamp_ms)
 
@@ -89,7 +79,6 @@ def main():
                 left_eye_points = []
                 right_eye_points = []
 
-                # Extract Normalized Coordinates -> Pixel Coordinates
                 for idx in LEFT_EYE:
                     lm = face_landmarks[idx]
                     left_eye_points.append((int(lm.x * width), int(lm.y * height)))
@@ -98,15 +87,10 @@ def main():
                     lm = face_landmarks[idx]
                     right_eye_points.append((int(lm.x * width), int(lm.y * height)))
 
-                # Geometry Logic
                 left_ear = calculate_ear(left_eye_points)
                 right_ear = calculate_ear(right_eye_points)
                 avg_ear = (left_ear + right_ear) / 2.0
                 
-                # Calibration print
-                # print(f"[DEBUG] EAR: {avg_ear:.3f}")
-
-                # State Machine
                 if avg_ear < EYE_ASPECT_RATIO_THRESHOLD:
                     COUNTER += 1
                     if COUNTER >= EYE_ASPECT_RATIO_CONSEC_FRAMES:
@@ -122,7 +106,6 @@ def main():
                         ALARM_ON = False
                         deactivate_alarm()
                 
-                # Visual Feedback
                 cv2.putText(image, f"EAR: {avg_ear:.2f}", (width - 150, 30),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
                 

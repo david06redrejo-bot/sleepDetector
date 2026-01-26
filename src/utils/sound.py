@@ -1,19 +1,20 @@
 """
-utils/alarm.py
+src/utils/sound.py
 
 Handles system alerts (Audio/Visual) for the Drowsiness Detection System.
 """
 
 import winsound
+import os
+from src.config import ALARM_SOUND_PATH
 
 def trigger_alarm():
     """
     Activates the drowsiness alarm in a non-blocking loop.
+    Uses the path defined in config.py
     """
     print("FOCUS! - DROWSINESS DETECTED")
-    # SND_LOOP: Repeats the sound until purging
-    # SND_ASYNC: Does not block the main video loop
-    winsound.PlaySound("alarm.wav", winsound.SND_ASYNC | winsound.SND_FILENAME | winsound.SND_LOOP)
+    winsound.PlaySound(ALARM_SOUND_PATH, winsound.SND_ASYNC | winsound.SND_FILENAME | winsound.SND_LOOP)
 
 def deactivate_alarm():
     """

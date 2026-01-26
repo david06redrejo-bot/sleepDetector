@@ -7,13 +7,15 @@ The Cyberpunk Drowsiness Detection Web Application.
 import streamlit as st
 import time
 import base64
+import os
 from streamlit_webrtc import webrtc_streamer, WebRtcMode
 import altair as alt
 import pandas as pd
 from datetime import datetime
 
-from drowsiness_processor import DrowsinessProcessor
-import config
+# Updated Imports
+from src.core.processor import DrowsinessProcessor
+import src.config as config
 
 # -----------------------------------------------------------------------------
 # PAGE CONFIGURATION
@@ -25,8 +27,9 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Load Custom CSS
-with open("assets/style.css") as f:
+# Load Custom CSS using config.ASSETS_DIR
+css_path = os.path.join(config.ASSETS_DIR, "style.css")
+with open(css_path) as f:
     st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
@@ -38,12 +41,11 @@ def get_audio_html(file_path):
         with open(file_path, "rb") as f:
             data = f.read()
         b64 = base64.b64encode(data).decode()
-        # Auto-play hidden audio element
         return f'<audio autoplay loop><source src="data:audio/wav;base64,{b64}" type="audio/wav"></audio>'
     except FileNotFoundError:
         return ""
 
-ALARM_AUDIO_HTML = get_audio_html("alarm.wav")
+ALARM_AUDIO_HTML = get_audio_html(config.ALARM_SOUND_PATH)
 alarm_placeholder = st.empty()
 
 # -----------------------------------------------------------------------------
@@ -74,7 +76,6 @@ col1, col2 = st.columns([2, 1])
 with col1:
     st.markdown("### OPTICAL SENSOR FEED")
     
-    # WEBRTC STREAMER
     ctx = webrtc_streamer(
         key="drowsiness-detection",
         mode=WebRtcMode.SENDRECV,
@@ -90,29 +91,24 @@ with col2:
     metric_placeholder = st.empty()
 
 # -----------------------------------------------------------------------------
-# MAIN EVENT LOOP (Polling)
+# MAIN EVENT LOOP
 # -----------------------------------------------------------------------------
 if ctx.video_processor:
     ctx.video_processor.update_threshold(threshold_slider)
     
-    # Data buffer for charting
     ear_data = []
 
     while ctx.state.playing:
-        # 1. Get State from Processor
         with ctx.video_processor.lock:
             current_ear = ctx.video_processor.current_ear
             is_alarm = ctx.video_processor.alarm_on
         
-        # 2. Update Metrics
         timestamp = datetime.now()
         ear_data.append({"Time": timestamp, "EAR": current_ear})
         
-        # Keep chart window small (last 50 frames)
         if len(ear_data) > 50:
             ear_data.pop(0)
             
-        # 3. Render Chart
         df = pd.DataFrame(ear_data)
         chart = alt.Chart(df).mark_line(color='#66fcf1').encode(
             x=alt.X('Time', axis=alt.Axis(format='%H:%M:%S', title='Time')),
@@ -121,14 +117,12 @@ if ctx.video_processor:
         
         chart_placeholder.altair_chart(chart, use_container_width=True)
 
-        # 4. Status & Audio Trigger
         if is_alarm:
             metric_placeholder.markdown(
                 '<div class="metric-container status-danger">CRITICAL ALERT: DROWSINESS DETECTED</div>', 
                 unsafe_allow_html=True
             )
             status_indicator.markdown("🔴 **CRITICAL**")
-            # Inject Audio if not already playing (simplified by repeated injection which works for HTML5 autoplay)
             alarm_placeholder.markdown(ALARM_AUDIO_HTML, unsafe_allow_html=True)
         else:
             metric_placeholder.markdown(
@@ -138,4 +132,4 @@ if ctx.video_processor:
             status_indicator.markdown("🟢 **ONLINE**")
             alarm_placeholder.empty()
 
-        time.sleep(0.1) # Poll rate
+        time.sleep(0.1)
