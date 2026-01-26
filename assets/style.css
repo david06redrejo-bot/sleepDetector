@@ -1,0 +1,72 @@
+/* Global Theme Reset */
+.stApp {
+    background-color: #050505;
+    background-image: linear-gradient(0deg, #050505 0%, #1a1a2e 100%);
+    color: #e0e0e0;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+/* Sidebar Styling */
+[data-testid="stSidebar"] {
+    background-color: #0b0c10;
+    border-right: 1px solid #1f2833;
+}
+
+/* Headers */
+h1, h2, h3 {
+    color: #66fcf1;
+    text-shadow: 0 0 10px #45a29e;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+/* Status Indicators */
+.metric-container {
+    background-color: #1f2833;
+    border: 1px solid #45a29e;
+    padding: 10px;
+    border-radius: 5px;
+    box-shadow: 0 0 15px rgba(69, 162, 158, 0.2);
+    text-align: center;
+}
+
+.status-safe {
+    color: #00ff41; /* Neon Green */
+    font-weight: bold;
+    font-size: 1.2em;
+    text-shadow: 0 0 8px #00ff41;
+}
+
+.status-danger {
+    color: #ff003c; /* Neon Red */
+    font-weight: bold;
+    font-size: 1.2em;
+    text-shadow: 0 0 8px #ff003c;
+    animation: blink 1s infinite;
+}
+
+@keyframes blink {
+    50% { opacity: 0; }
+}
+
+/* Charts */
+[data-testid="stVegaLiteChart"] {
+    background-color: rgba(31, 40, 51, 0.5);
+    border-radius: 10px;
+    padding: 10px;
+}
+
+/* Buttons */
+.stButton>button {
+    background-color: #1f2833;
+    color: #66fcf1;
+    border: 1px solid #66fcf1;
+    border-radius: 0;
+    transition: all 0.3s ease;
+}
+
+.stButton>button:hover {
+    background-color: #66fcf1;
+    color: #0b0c10;
+    box-shadow: 0 0 20px #66fcf1;
+}
