@@ -1,72 +1,235 @@
-/* Global Theme Reset */
+/* -----------------------------------------------------------------------------
+   NEURO-VIGILANCE // GLOBAL THEME
+   STYLE.CSS
+----------------------------------------------------------------------------- */
+
+/* Import JetBrains Mono for that technical terminal feel */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&display=swap');
+
+:root {
+    --neon-cyan: #66fcf1;
+    --dark-cyan: #45a29e;
+    --neon-red: #ff003c;
+    --neon-green: #00ff41;
+    --obsidian: #0b0c10;
+    --panel-bg: #1f2833;
+    --text-main: #c5c6c7;
+    --border-glow: 0 0 10px rgba(102, 252, 241, 0.3);
+}
+
+/* GLOBAL RESET & APP CONTAINER */
 .stApp {
-    background-color: #050505;
-    background-image: linear-gradient(0deg, #050505 0%, #1a1a2e 100%);
-    color: #e0e0e0;
-    font-family: 'Courier New', Courier, monospace;
+    background-color: var(--obsidian);
+    background-image:
+        linear-gradient(rgba(11, 12, 16, 0.95), rgba(11, 12, 16, 0.95)),
+        repeating-linear-gradient(0deg, transparent, transparent 1px, #1f2833 1px, #1f2833 2px);
+    background-size: 100% 100%, 100% 4px;
+    /* subtle scanline effect */
+    color: var(--text-main);
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
 }
 
-/* Sidebar Styling */
-[data-testid="stSidebar"] {
-    background-color: #0b0c10;
-    border-right: 1px solid #1f2833;
+/* Remove default Streamlit padding */
+.block-container {
+    padding-top: 2rem !important;
+    padding-bottom: 2rem !important;
+    max-width: 95% !important;
 }
 
-/* Headers */
-h1, h2, h3 {
-    color: #66fcf1;
-    text-shadow: 0 0 10px #45a29e;
+/* Hide Streamlit Branding */
+#MainMenu {
+    visibility: hidden;
+}
+
+footer {
+    visibility: hidden;
+}
+
+header {
+    visibility: hidden;
+}
+
+/* -----------------------------------------------------------------------------
+   TYPOGRAPHY
+----------------------------------------------------------------------------- */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    color: var(--neon-cyan) !important;
     text-transform: uppercase;
     letter-spacing: 2px;
+    text-shadow: 0 0 8px rgba(102, 252, 241, 0.6);
+    font-weight: 800 !important;
 }
 
-/* Status Indicators */
+p,
+label,
+.stMarkdown {
+    color: var(--text-main) !important;
+}
+
+/* -----------------------------------------------------------------------------
+   SIDEBAR
+----------------------------------------------------------------------------- */
+[data-testid="stSidebar"] {
+    background-color: #050608 !important;
+    border-right: 1px solid var(--dark-cyan);
+    box-shadow: 5px 0 20px rgba(0, 0, 0, 0.5);
+}
+
+[data-testid="stSidebar"] hr {
+    border-color: var(--dark-cyan) !important;
+    opacity: 0.5;
+}
+
+/* Custom Slider */
+.stSlider div[data-baseweb="slider"] div {
+    background-color: var(--neon-cyan) !important;
+}
+
+.stSlider div[role="slider"] {
+    background-color: var(--obsidian) !important;
+    border: 2px solid var(--neon-cyan) !important;
+    box-shadow: 0 0 10px var(--neon-cyan);
+}
+
+/* -----------------------------------------------------------------------------
+   METRIC CONTAINERS & HUD ELEMENTS
+----------------------------------------------------------------------------- */
 .metric-container {
-    background-color: #1f2833;
-    border: 1px solid #45a29e;
-    padding: 10px;
-    border-radius: 5px;
-    box-shadow: 0 0 15px rgba(69, 162, 158, 0.2);
-    text-align: center;
+    background: rgba(31, 40, 51, 0.7);
+    border: 1px solid var(--dark-cyan);
+    border-left: 4px solid var(--dark-cyan);
+    padding: 15px;
+    margin-bottom: 20px;
+    backdrop-filter: blur(5px);
+    border-radius: 2px;
+    /* Sharp corners */
+    position: relative;
+    overflow: hidden;
+}
+
+/* Decoration line */
+.metric-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 20px;
+    height: 20px;
+    background: linear-gradient(135deg, transparent 50%, var(--dark-cyan) 50%);
 }
 
 .status-safe {
-    color: #00ff41; /* Neon Green */
-    font-weight: bold;
-    font-size: 1.2em;
-    text-shadow: 0 0 8px #00ff41;
+    border-color: var(--neon-green);
+    border-left-color: var(--neon-green);
+    color: var(--neon-green);
+    box-shadow: inset 0 0 20px rgba(0, 255, 65, 0.1);
+    text-shadow: 0 0 5px var(--neon-green);
+    font-size: 1.2rem;
+    font-weight: 700;
 }
 
 .status-danger {
-    color: #ff003c; /* Neon Red */
-    font-weight: bold;
-    font-size: 1.2em;
-    text-shadow: 0 0 8px #ff003c;
-    animation: blink 1s infinite;
+    border-color: var(--neon-red);
+    border-left-color: var(--neon-red);
+    color: var(--neon-red);
+    box-shadow: inset 0 0 20px rgba(255, 0, 60, 0.2), 0 0 15px var(--neon-red);
+    text-shadow: 0 0 5px var(--neon-red);
+    font-size: 1.4rem;
+    font-weight: 800;
+    animation: glitch-anim 1s infinite linear alternate-reverse;
 }
 
-@keyframes blink {
-    50% { opacity: 0; }
+@keyframes glitch-anim {
+    0% {
+        opacity: 1;
+        transform: skew(0deg);
+    }
+
+    10% {
+        opacity: 0.9;
+        transform: skew(-2deg);
+    }
+
+    20% {
+        opacity: 1;
+        transform: skew(0deg);
+    }
+
+    30% {
+        opacity: 1;
+        transform: skew(2deg);
+    }
+
+    40% {
+        opacity: 0.8;
+        transform: translate(-2px, 0);
+    }
+
+    50% {
+        opacity: 1;
+        transform: translate(0, 0);
+    }
+
+    100% {
+        opacity: 1;
+        transform: skew(0deg);
+    }
 }
 
-/* Charts */
+/* -----------------------------------------------------------------------------
+   VIDEO HUD FRAME
+----------------------------------------------------------------------------- */
+/* Target the WebRTC container if possible, generic fallback to iframe/video containers */
+iframe,
+video,
+.element-container:has(iframe) {
+    border: 1px solid var(--dark-cyan);
+    box-shadow: 0 0 15px rgba(69, 252, 241, 0.2);
+    position: relative;
+    clip-path: polygon(0% 0%,
+            100% 0%,
+            100% 90%,
+            95% 100%,
+            0% 100%);
+    /* Sci-fi cropped corner */
+}
+
+/* -----------------------------------------------------------------------------
+   CHARTS & DATA
+----------------------------------------------------------------------------- */
 [data-testid="stVegaLiteChart"] {
-    background-color: rgba(31, 40, 51, 0.5);
-    border-radius: 10px;
+    background: rgba(5, 6, 8, 0.8) !important;
+    border: 1px solid #1f2833;
     padding: 10px;
+    border-radius: 0 !important;
 }
 
-/* Buttons */
+/* -----------------------------------------------------------------------------
+   BUTTONS
+----------------------------------------------------------------------------- */
 .stButton>button {
-    background-color: #1f2833;
-    color: #66fcf1;
-    border: 1px solid #66fcf1;
-    border-radius: 0;
-    transition: all 0.3s ease;
+    background-color: transparent !important;
+    color: var(--neon-cyan) !important;
+    border: 1px solid var(--neon-cyan) !important;
+    border-radius: 0 !important;
+    font-family: 'JetBrains Mono', monospace !important;
+    text-transform: uppercase;
+    transition: all 0.2s ease;
+    letter-spacing: 1px;
 }
 
 .stButton>button:hover {
-    background-color: #66fcf1;
-    color: #0b0c10;
-    box-shadow: 0 0 20px #66fcf1;
+    background-color: var(--neon-cyan) !important;
+    color: var(--obsidian) !important;
+    box-shadow: 0 0 15px var(--neon-cyan);
+    transform: translateY(-2px);
+}
+
+.stButton>button:active {
+    transform: translateY(0);
 }
