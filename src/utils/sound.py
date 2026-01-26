@@ -2,22 +2,22 @@
 src/utils/sound.py
 
 Handles system alerts (Audio/Visual) for the Drowsiness Detection System.
+Refactored for Cloud Deployment (Linux Compatible): Removed winsound dependency.
 """
 
-import winsound
 import os
-from src.config import ALARM_SOUND_PATH
+# from src.config import ALARM_SOUND_PATH # path unused in print-only version
 
 def trigger_alarm():
     """
-    Activates the drowsiness alarm in a non-blocking loop.
-    Uses the path defined in config.py
+    Activates the drowsiness alarm.
+    On server/cloud environments, sound playback via winsound is disabled.
+    This function now just logs the event.
     """
-    print("FOCUS! - DROWSINESS DETECTED")
-    winsound.PlaySound(ALARM_SOUND_PATH, winsound.SND_ASYNC | winsound.SND_FILENAME | winsound.SND_LOOP)
+    print("ALARM TRIGGERED: Drowsiness Detected! (Audio handled by client-side or suppressed)")
 
 def deactivate_alarm():
     """
     Deactivates or resets the alarm state.
     """
-    winsound.PlaySound(None, winsound.SND_PURGE)
+    print("ALARM DEACTIVATED: Alert condition resolved.")

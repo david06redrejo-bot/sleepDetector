@@ -1,6 +1,8 @@
-opencv-python-headless
-mediapipe
 streamlit
 streamlit-webrtc
+mediapipe
+opencv-python-headless
 av
 numpy
+pandas
+altair
