@@ -12,7 +12,7 @@ import os
 # Import from source package
 from src.config import *
 from src.utils.geometry import calculate_ear
-from src.utils.sound import trigger_alarm, deactivate_alarm
+import winsound
 
 def initialize_landmarker():
     BaseOptions = mp.tasks.BaseOptions
@@ -96,7 +96,7 @@ def main():
                     if COUNTER >= EYE_ASPECT_RATIO_CONSEC_FRAMES:
                         if not ALARM_ON:
                             ALARM_ON = True
-                            trigger_alarm()
+                            winsound.PlaySound(ALARM_SOUND_PATH, winsound.SND_ASYNC | winsound.SND_LOOP)
                         
                         cv2.putText(image, "DROWSINESS ALERT!", (10, 30),
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
@@ -104,7 +104,7 @@ def main():
                     COUNTER = 0
                     if ALARM_ON:
                         ALARM_ON = False
-                        deactivate_alarm()
+                        winsound.PlaySound(None, winsound.SND_PURGE)
                 
                 cv2.putText(image, f"EAR: {avg_ear:.2f}", (width - 150, 30),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
@@ -121,7 +121,7 @@ def main():
         landmarker.close()
         cap.release()
         cv2.destroyAllWindows()
-        deactivate_alarm()
+        winsound.PlaySound(None, winsound.SND_PURGE)
         print("[INFO] System Terminated.")
 
 if __name__ == "__main__":
