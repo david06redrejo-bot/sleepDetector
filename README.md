@@ -1,74 +1,76 @@
----
-title: SleepDetector
-emoji: 👁️
-colorFrom: blue
-colorTo: indigo
-sdk: streamlit
-sdk_version: 1.37.0
-app_file: app.py
-pinned: false
----
+# Neuro-Vigilance Sleep Detector
 
-# Real-Time Drowsiness Detection System
+A real-time drowsiness detection system using Computer Vision and AI. Designed for local desktop execution.
+
+![Status](https://img.shields.io/badge/Status-Active-brightgreen)
+![Python](https://img.shields.io/badge/Python-3.8%2B-blue)
 
 ## Overview
-**Neuro-Vigilance** (formerly SleepDetector) is a dual-mode computer vision application designed to prevent driver drowsiness accidents. It leverages the **MediaPipe Tasks API** for high-precision facial landmark detection, calculating the Eye Aspect Ratio (EAR) to monitor alertness in real-time.
+
+This project uses **MediaPipe Face Mesh** to detect facial landmarks and calculate the **Eye Aspect Ratio (EAR)**. If the user's eyes receive a closure score below a certain threshold for a consecutive number of frames, an audible alarm is triggered to wake the user.
 
 ## Features
-- **Dual Interface**:
-    - **Web App**: Futuristic "Cyberpunk" UI via Streamlit (Browser-based).
-    - **Desktop**: Lightweight OpenCV implementation.
-- **Robust Metrics**: Uses EAR (Eye Aspect Ratio) for scale-invariant drowsy detection.
-- **Client-Side Audio**: Web version uses HTML5 injection for browser-safe alerts.
-- **Professional Architecture**: Structured package layout (`src/`) with dynamic path resolution.
+
+- **Real-Time Monitoring**: Low-latency feed from the default webcam.
+- **EAR Calculation**: Precise measurement of eye openness.
+- **Audible Alarm**: Native system sound trigger when drowsiness is detected.
+- **Visual Alerts**: On-screen warning text and bounding boxes.
+- **Privacy First**: All processing happens locally on your machine. No video data is sent to the cloud.
+
+## Requirements
+
+- Python 3.8 or higher
+- A webcam
+- Windows OS (recommended for `winsound` support)
 
 ## Installation
-1. **Clone the Repository**:
-   ```bash
-   git clone https://github.com/david06redrejo-bot/sleepDetector.git
-   cd sleepDetector
-   ```
-2. **Install Dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
+
+1.  **Clone the repository** (if not already done):
+    ```bash
+    git clone <repository-url>
+    cd CV-PER_PROJECT
+    ```
+
+2.  **Install Dependencies**:
+    It is recommended to use a virtual environment.
+    ```bash
+    pip install -r requirements.txt
+    ```
 
 ## Usage
 
-### 🚀 Web Application (Recommended)
-Launch the modern Cyberpunk dashboard:
-```bash
-streamlit run app.py
-```
-*Access via browser at `http://localhost:8501`*
+1.  **Run the application**:
+    ```bash
+    python main.py
+    ```
 
-### 💻 Desktop Version (Legacy)
-Run the classic OpenCV window:
-```bash
-python main.py
+2.  **Operation**:
+    - The application will open a window named `SleepDetector v1.0`.
+    - Keep your face within the camera frame.
+    - The real-time EAR value is displayed in the top-right corner.
+    - **Test the alarm**: Close your eyes for about 3-5 seconds.
+
+3.  **Exit**:
+    - Press `Esc` key to close the application.
+
+## Project Structure
+
+```text
+CV-PER_PROJECT/
+├── assets/             # Audio files and static resources
+├── guide/              # Lab guides and PDFs
+├── models/             # MediaPipe task models
+├── src/
+│   ├── config.py       # Configuration settings
+│   └── utils/
+│       └── geometry.py # EAR calculation logic
+├── main.py             # Application entry point
+├── requirements.txt    # Project dependencies
+└── README.md           # This file
 ```
 
 ## Configuration
-Adjust system parameters in `src/config.py`:
-- `EYE_ASPECT_RATIO_THRESHOLD` (Default: 0.25)
-- `EYE_ASPECT_RATIO_CONSEC_FRAMES` (Default: 16)
 
-## Project Structure
-```text
-sleep_detector/
-├── app.py                 # Streamlit Web App Entry Point
-├── main.py                # Desktop App Entry Point
-├── assets/                # Static assets (CSS, Audio)
-├── models/                # MediaPipe Model Bundles
-└── src/                   # Source Code
-    ├── config.py          # Dynamic Configuration
-    ├── core/              # Logic & Inference
-    └── utils/             # Helper Functions
-```
-
-## Technical Details
-$$ EAR = \frac{||p_2 - p_6|| + ||p_3 - p_5||}{2 \times ||p_1 - p_4||} $$
-
-## Author
-**David Redrejo**
-Computer Vision Personal Project.
+You can adjust sensitivity settings in `src/config.py`:
+- `EYE_ASPECT_RATIO_THRESHOLD`: EAR value below which eyes are considered closed (default: 0.25).
+- `EYE_ASPECT_RATIO_CONSEC_FRAMES`: Number of consecutive frames to trigger alarm (default: 16).

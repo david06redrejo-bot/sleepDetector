@@ -13,6 +13,7 @@ import os
 from src.config import *
 from src.utils.geometry import calculate_ear
 import winsound
+import traceback
 
 def initialize_landmarker():
     BaseOptions = mp.tasks.BaseOptions
@@ -64,56 +65,66 @@ def main():
         while cap.isOpened():
             success, image = cap.read()
             if not success:
-               continue
-
-            height, width, _ = image.shape
-            image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-            mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=image_rgb)
-
-            frame_timestamp_ms += 33
-            results = landmarker.detect_for_video(mp_image, frame_timestamp_ms)
-
-            if results.face_landmarks:
-                face_landmarks = results.face_landmarks[0]
-                
-                left_eye_points = []
-                right_eye_points = []
-
-                for idx in LEFT_EYE:
-                    lm = face_landmarks[idx]
-                    left_eye_points.append((int(lm.x * width), int(lm.y * height)))
-                
-                for idx in RIGHT_EYE:
-                    lm = face_landmarks[idx]
-                    right_eye_points.append((int(lm.x * width), int(lm.y * height)))
-
-                left_ear = calculate_ear(left_eye_points)
-                right_ear = calculate_ear(right_eye_points)
-                avg_ear = (left_ear + right_ear) / 2.0
-                
-                if avg_ear < EYE_ASPECT_RATIO_THRESHOLD:
-                    COUNTER += 1
-                    if COUNTER >= EYE_ASPECT_RATIO_CONSEC_FRAMES:
-                        if not ALARM_ON:
-                            ALARM_ON = True
-                            winsound.PlaySound(ALARM_SOUND_PATH, winsound.SND_ASYNC | winsound.SND_LOOP)
-                        
-                        cv2.putText(image, "DROWSINESS ALERT!", (10, 30),
-                                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-                else:
-                    COUNTER = 0
-                    if ALARM_ON:
-                        ALARM_ON = False
-                        winsound.PlaySound(None, winsound.SND_PURGE)
-                
-                cv2.putText(image, f"EAR: {avg_ear:.2f}", (width - 150, 30),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
-                
-                for (x, y) in left_eye_points + right_eye_points:
-                    cv2.circle(image, (x, y), 1, (0, 255, 0), -1)
-
-            cv2.imshow('SleepDetector v1.0', image)
+                print("[WARN] Failed to read frame from webcam. Retrying...")
+                continue
             
+            try:
+                height, width, _ = image.shape
+                image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+                mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=image_rgb)
+
+                frame_timestamp_ms += 33
+                results = landmarker.detect_for_video(mp_image, frame_timestamp_ms)
+
+                if results.face_landmarks:
+                    face_landmarks = results.face_landmarks[0]
+                    
+                    left_eye_points = []
+                    right_eye_points = []
+
+                    for idx in LEFT_EYE:
+                        lm = face_landmarks[idx]
+                        left_eye_points.append((int(lm.x * width), int(lm.y * height)))
+                    
+                    for idx in RIGHT_EYE:
+                        lm = face_landmarks[idx]
+                        right_eye_points.append((int(lm.x * width), int(lm.y * height)))
+
+                    left_ear = calculate_ear(left_eye_points)
+                    right_ear = calculate_ear(right_eye_points)
+                    avg_ear = (left_ear + right_ear) / 2.0
+                    
+                    if avg_ear < EYE_ASPECT_RATIO_THRESHOLD:
+                        COUNTER += 1
+                        if COUNTER >= EYE_ASPECT_RATIO_CONSEC_FRAMES:
+                            if not ALARM_ON:
+                                ALARM_ON = True
+                                winsound.PlaySound(ALARM_SOUND_PATH, winsound.SND_ASYNC | winsound.SND_LOOP)
+                            
+                            cv2.putText(image, "DROWSINESS ALERT!", (10, 30),
+                                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+                    else:
+                        COUNTER = 0
+                        if ALARM_ON:
+                            ALARM_ON = False
+                            winsound.PlaySound(None, winsound.SND_PURGE)
+                    
+                    cv2.putText(image, f"EAR: {avg_ear:.2f}", (width - 150, 30),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+                    
+                    for (x, y) in left_eye_points + right_eye_points:
+                        cv2.circle(image, (x, y), 1, (0, 255, 0), -1)
+
+                cv2.imshow('SleepDetector v1.0', image)
+            
+            except Exception as e:
+                print(f"[ERROR] Exception occurred during processing: {e}")
+                traceback.print_exc()
+                # Determine if we should break or continue
+                # Depending on the error (e.g. MediaPipe crash vs transient), we might want to break.
+                # For safety, let's break so the user sees the error.
+                break
+
             if cv2.waitKey(5) & 0xFF == 27:
                 break
                 
