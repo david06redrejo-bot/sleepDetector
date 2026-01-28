@@ -416,17 +416,11 @@ def main():
                     drowsy = ctx.video_processor.alarm_on
                 
                 if drowsy:
-                    # Local Debug: Use server-side sound
-                    trigger_alarm()
-                    
-                    # Remote/Deploy: Inject Audio HTML
-                    # sound_placeholder.markdown(AUDIO_HTML, unsafe_allow_html=True)
+                    # Client-side audio: Inject HTML audio player into browser
+                    sound_placeholder.markdown(AUDIO_HTML, unsafe_allow_html=True)
                 else:
-                    # Local Debug: Stop server-side sound
-                    deactivate_alarm()
-                    
-                    # Remote/Deploy: Remove Audio HTML
-                    # sound_placeholder.empty()
+                    # Remove audio when not drowsy
+                    sound_placeholder.empty()
             
             # Prevent high CPU usage in polling loop
             time.sleep(0.1)
