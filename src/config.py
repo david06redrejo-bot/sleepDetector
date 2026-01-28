@@ -21,7 +21,7 @@ MODELS_DIR = os.path.join(PROJECT_ROOT, "models")
 # -----------------------------------------------------------------------------
 # EYE ASPECT RATIO (EAR) SETTINGS
 # -----------------------------------------------------------------------------
-EYE_ASPECT_RATIO_THRESHOLD = 0.20
+EYE_ASPECT_RATIO_THRESHOLD = 0.175
 EYE_ASPECT_RATIO_CONSEC_FRAMES = 8
 
 # -----------------------------------------------------------------------------
