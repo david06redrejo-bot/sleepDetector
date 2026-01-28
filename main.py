@@ -1,139 +1,195 @@
 """
 main.py
 
-Main application entry point (Desktop Version).
+Drowsiness Detection System - Streamlit Web App (Hugging Face Compatible)
+Migrated from desktop OpenCV to Streamlit-WebRTC.
 """
 
+import av
 import cv2
 import mediapipe as mp
-import sys
+import numpy as np
+import streamlit as st
+from streamlit_webrtc import webrtc_streamer, VideoProcessorBase, WebRtcMode
+import base64
+import threading
+import time
 import os
+import sys
 
 # Import from source package
 from src.config import *
 from src.utils.geometry import calculate_ear
-import winsound
-import traceback
 
-def initialize_landmarker():
-    BaseOptions = mp.tasks.BaseOptions
-    FaceLandmarker = mp.tasks.vision.FaceLandmarker
-    FaceLandmarkerOptions = mp.tasks.vision.FaceLandmarkerOptions
-    VisionRunningMode = mp.tasks.vision.RunningMode
+# Load Custom CSS
+def load_css(file_name):
+    with open(file_name) as f:
+        st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
 
-    # Use dynamic path from config
-    model_path = os.path.join(MODELS_DIR, "face_landmarker.task")
+try:
+    load_css(os.path.join(ASSETS_DIR, 'style.css'))
+except Exception as e:
+    print(f"Warning: Could not load CSS: {e}")
 
+# Audio Handling (Client-Side)
+def get_audio_html(file_path):
+    """
+    Generates an HTML audio player that autoplays independent of the browser's
+    strict autoplay policies (works best when triggered by UI updates).
+    """
     try:
-        with open(model_path, 'r'): pass
+        with open(file_path, "rb") as f:
+            data = f.read()
+            b64_audio = base64.b64encode(data).decode()
+            
+        md = f"""
+            <audio autoplay loop>
+            <source src="data:audio/wav;base64,{b64_audio}" type="audio/wav">
+            Your browser does not support the audio element.
+            </audio>
+            """
+        return md
     except FileNotFoundError:
-        print(f"[ERROR] Model bundle missing at {model_path}.")
-        sys.exit(1)
+        return ""
 
-    options = FaceLandmarkerOptions(
-        base_options=BaseOptions(model_asset_path=model_path),
-        running_mode=VisionRunningMode.VIDEO,
-        num_faces=1,
-        min_face_detection_confidence=0.5,
-        min_face_presence_confidence=0.5,
-        min_tracking_confidence=0.5,
-        output_face_blendshapes=False,
-        output_facial_transformation_matrixes=False
-    )
-    
-    return FaceLandmarker.create_from_options(options)
+AUDIO_HTML = get_audio_html(ALARM_SOUND_PATH)
+
+# MediaPipe Initialization (Lazy Loading)
+class DrowsinessProcessor(VideoProcessorBase):
+    def __init__(self):
+        self.frame_lock = threading.Lock()
+        self.alarm_on = False
+        
+        # Initialize MediaPipe
+        self.BaseOptions = mp.tasks.BaseOptions
+        self.FaceLandmarker = mp.tasks.vision.FaceLandmarker
+        self.FaceLandmarkerOptions = mp.tasks.vision.FaceLandmarkerOptions
+        self.VisionRunningMode = mp.tasks.vision.RunningMode
+        
+        # Path to model
+        model_path = os.path.join(MODELS_DIR, "face_landmarker.task")
+        
+        options = self.FaceLandmarkerOptions(
+            base_options=self.BaseOptions(model_asset_path=model_path),
+            running_mode=self.VisionRunningMode.VIDEO,
+            num_faces=1,
+            min_face_detection_confidence=0.5,
+            min_face_presence_confidence=0.5,
+            min_tracking_confidence=0.5
+        )
+        
+        self.landmarker = self.FaceLandmarker.create_from_options(options)
+        self.timestamp_ms = 0
+        
+        # Constants
+        self.LEFT_EYE = [33, 160, 158, 133, 153, 144]
+        self.RIGHT_EYE = [362, 385, 387, 263, 373, 380]
+        self.consec_frames = 0
+        
+    def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
+        """
+        Receives a frame from the WebRTC stream, processes it, and returns it.
+        """
+        image = frame.to_ndarray(format="bgr24")
+        
+        # MediaPipe expects RGB
+        image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=image_rgb)
+        
+        # Update timestamp (simulating 30fps roughly for MP tracking)
+        self.timestamp_ms += 33
+        
+        try:
+            results = self.landmarker.detect_for_video(mp_image, self.timestamp_ms)
+            
+            is_drowsy_now = False
+            
+            if results.face_landmarks:
+                face_landmarks = results.face_landmarks[0]
+                height, width, _ = image.shape
+                
+                left_eye_points = []
+                right_eye_points = []
+
+                for idx in self.LEFT_EYE:
+                    lm = face_landmarks[idx]
+                    left_eye_points.append((int(lm.x * width), int(lm.y * height)))
+                
+                for idx in self.RIGHT_EYE:
+                    lm = face_landmarks[idx]
+                    right_eye_points.append((int(lm.x * width), int(lm.y * height)))
+
+                left_ear = calculate_ear(left_eye_points)
+                right_ear = calculate_ear(right_eye_points)
+                avg_ear = (left_ear + right_ear) / 2.0
+                
+                # Draw EAR
+                cv2.putText(image, f"EAR: {avg_ear:.2f}", (width - 150, 30),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+                
+                # Draw Eyes
+                for (x, y) in left_eye_points + right_eye_points:
+                    cv2.circle(image, (x, y), 1, (0, 255, 0), -1)
+                
+                # Check Logic
+                if avg_ear < EYE_ASPECT_RATIO_THRESHOLD:
+                    self.consec_frames += 1
+                    if self.consec_frames >= EYE_ASPECT_RATIO_CONSEC_FRAMES:
+                        is_drowsy_now = True
+                        # Parse Visual Alert on Frame
+                        cv2.putText(image, "DROWSINESS ALERT!", (10, 30),
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+                        cv2.rectangle(image, (0,0), (width, height), (0,0,255), 5)
+                else:
+                    self.consec_frames = 0
+            
+            # Thread-safe update of alarm state
+            with self.frame_lock:
+                self.alarm_on = is_drowsy_now
+                
+        except Exception as e:
+            print(f"Error in processing: {e}")
+            
+        return av.VideoFrame.from_ndarray(image, format="bgr24")
 
 def main():
-    print("[INFO] Starting Drowsiness Detection System (Desktop)...")
+    st.title("😴 Real-Time Drowsiness Detector")
+    st.markdown("### Powered by MediaPipe & Streamlit")
     
-    cap = cv2.VideoCapture(WEBCAM_ID)
-    if not cap.isOpened():
-        print(f"[ERROR] Could not open webcam {WEBCAM_ID}")
-        return
+    st.info("Ensure you grant camera permission. The alarm will sound if you close your eyes for a few seconds.")
 
-    landmarker = initialize_landmarker()
+    # WebRTC Streamer
+    ctx = webrtc_streamer(
+        key="drowsiness-detection", 
+        mode=WebRtcMode.SENDRECV,
+        rtc_configuration={
+            "iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]
+        },
+        video_processor_factory=DrowsinessProcessor,
+        media_stream_constraints={"video": True, "audio": False},
+        async_processing=True,
+    )
     
-    COUNTER = 0
-    ALARM_ON = False
+    # Placeholder for Client-Side Audio
+    sound_placeholder = st.empty()
     
-    LEFT_EYE = [33, 160, 158, 133, 153, 144]
-    RIGHT_EYE = [362, 385, 387, 263, 373, 380]
-
-    frame_timestamp_ms = 0
-
-    try:
-        while cap.isOpened():
-            success, image = cap.read()
-            if not success:
-                print("[WARN] Failed to read frame from webcam. Retrying...")
-                continue
-            
-            try:
-                height, width, _ = image.shape
-                image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-                mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=image_rgb)
-
-                frame_timestamp_ms += 33
-                results = landmarker.detect_for_video(mp_image, frame_timestamp_ms)
-
-                if results.face_landmarks:
-                    face_landmarks = results.face_landmarks[0]
-                    
-                    left_eye_points = []
-                    right_eye_points = []
-
-                    for idx in LEFT_EYE:
-                        lm = face_landmarks[idx]
-                        left_eye_points.append((int(lm.x * width), int(lm.y * height)))
-                    
-                    for idx in RIGHT_EYE:
-                        lm = face_landmarks[idx]
-                        right_eye_points.append((int(lm.x * width), int(lm.y * height)))
-
-                    left_ear = calculate_ear(left_eye_points)
-                    right_ear = calculate_ear(right_eye_points)
-                    avg_ear = (left_ear + right_ear) / 2.0
-                    
-                    if avg_ear < EYE_ASPECT_RATIO_THRESHOLD:
-                        COUNTER += 1
-                        if COUNTER >= EYE_ASPECT_RATIO_CONSEC_FRAMES:
-                            if not ALARM_ON:
-                                ALARM_ON = True
-                                winsound.PlaySound(ALARM_SOUND_PATH, winsound.SND_ASYNC | winsound.SND_LOOP)
-                            
-                            cv2.putText(image, "DROWSINESS ALERT!", (10, 30),
-                                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-                    else:
-                        COUNTER = 0
-                        if ALARM_ON:
-                            ALARM_ON = False
-                            winsound.PlaySound(None, winsound.SND_PURGE)
-                    
-                    cv2.putText(image, f"EAR: {avg_ear:.2f}", (width - 150, 30),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
-                    
-                    for (x, y) in left_eye_points + right_eye_points:
-                        cv2.circle(image, (x, y), 1, (0, 255, 0), -1)
-
-                cv2.imshow('SleepDetector v1.0', image)
-            
-            except Exception as e:
-                print(f"[ERROR] Exception occurred during processing: {e}")
-                traceback.print_exc()
-                # Determine if we should break or continue
-                # Depending on the error (e.g. MediaPipe crash vs transient), we might want to break.
-                # For safety, let's break so the user sees the error.
-                break
-
-            if cv2.waitKey(5) & 0xFF == 27:
-                break
+    # Polling Loop for Audio Trigger
+    if ctx.state.playing:
+        while True:
+            if ctx.video_processor:
+                drowsy = False
+                with ctx.video_processor.frame_lock:
+                    drowsy = ctx.video_processor.alarm_on
                 
-    finally:
-        landmarker.close()
-        cap.release()
-        cv2.destroyAllWindows()
-        winsound.PlaySound(None, winsound.SND_PURGE)
-        print("[INFO] System Terminated.")
+                if drowsy:
+                    # Inject Audio HTML (Autoplay Loop)
+                    sound_placeholder.markdown(AUDIO_HTML, unsafe_allow_html=True)
+                else:
+                    # Remove Audio HTML to stop sound
+                    sound_placeholder.empty()
+            
+            # Prevent high CPU usage in polling loop
+            time.sleep(0.1)
 
 if __name__ == "__main__":
     main()

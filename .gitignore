@@ -1,5 +1,8 @@
-guide/
 __pycache__/
 *.pyc
-.DS_Store
-.vscode/
+.gitignore
+.git
+guide/
+Dockerfile
+DOCKER_WALKTHROUGH.md
+HUGGING_FACE_DEPLOYMENT.md
