@@ -1,3 +1,14 @@
+---
+title: Drowsiness Detector
+emoji: 😴
+colorFrom: blue
+colorTo: red
+sdk: streamlit
+sdk_version: 1.41.1
+app_file: main.py
+pinned: false
+---
+
 # Neuro-Vigilance Sleep Detector
 
 A real-time drowsiness detection system using Computer Vision and AI.  
