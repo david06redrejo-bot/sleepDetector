@@ -29,6 +29,7 @@ This project uses **MediaPipe Face Mesh** to detect facial landmarks and calcula
 
 - **Web-Based Interface**: Accessible via any modern browser using Streamlit.
 - **Real-Time Monitoring**: Low-latency video processing via WebRTC.
+- **Robust Connectivity**: Configured with multiple STUN servers for reliable connection on Hugging Face.
 - **EAR Calculation**: Precise measurement of eye openness.
 - **Client-Side Audio**: Plays an alarm sound directly in the user's browser (bypassing server limitations).
 - **Privacy First**: Video streams are processed in memory and never saved.

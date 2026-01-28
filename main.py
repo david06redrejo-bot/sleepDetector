@@ -20,6 +20,7 @@ import sys
 # Import from source package
 from src.config import *
 from src.utils.geometry import calculate_ear
+from src.utils.sound import trigger_alarm, deactivate_alarm
 
 # Load Custom CSS
 def load_css(file_name):
@@ -158,22 +159,32 @@ def main():
     
     st.info("Ensure you grant camera permission. The alarm will sound if you close your eyes for a few seconds.")
 
-    # WebRTC Streamer
-    ctx = webrtc_streamer(
-        key="drowsiness-detection", 
-        mode=WebRtcMode.SENDRECV,
-        rtc_configuration={
-            "iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]
-        },
-        video_processor_factory=DrowsinessProcessor,
-        media_stream_constraints={"video": True, "audio": False},
-        async_processing=True,
-    )
+    # Layout: Center the video feed and make it smaller (medium size)
+    col1, col2, col3 = st.columns([1, 2, 1])
+    
+    with col2:
+        # WebRTC Streamer
+        ctx = webrtc_streamer(
+            key="drowsiness-detection", 
+            mode=WebRtcMode.SENDRECV,
+            rtc_configuration={
+                "iceServers": [
+                    {"urls": ["stun:stun.l.google.com:19302"]},
+                    {"urls": ["stun:stun1.l.google.com:19302"]},
+                    {"urls": ["stun:stun2.l.google.com:19302"]},
+                    {"urls": ["stun:stun3.l.google.com:19302"]},
+                    {"urls": ["stun:stun4.l.google.com:19302"]},
+                ]
+            },
+            video_processor_factory=DrowsinessProcessor,
+            media_stream_constraints={"video": True, "audio": False},
+            async_processing=True,
+        )
     
     # Placeholder for Client-Side Audio
     sound_placeholder = st.empty()
     
-    # Polling Loop for Audio Trigger
+# Polling Loop for Audio Trigger
     if ctx.state.playing:
         while True:
             if ctx.video_processor:
@@ -182,11 +193,17 @@ def main():
                     drowsy = ctx.video_processor.alarm_on
                 
                 if drowsy:
-                    # Inject Audio HTML (Autoplay Loop)
-                    sound_placeholder.markdown(AUDIO_HTML, unsafe_allow_html=True)
+                    # Local Debug: Use server-side sound (identical to local_debug.py)
+                    trigger_alarm()
+                    
+                    # Remote/Deploy: Inject Audio HTML
+                    # sound_placeholder.markdown(AUDIO_HTML, unsafe_allow_html=True)
                 else:
-                    # Remove Audio HTML to stop sound
-                    sound_placeholder.empty()
+                    # Local Debug: Stop server-side sound
+                    deactivate_alarm()
+                    
+                    # Remote/Deploy: Remove Audio HTML
+                    # sound_placeholder.empty()
             
             # Prevent high CPU usage in polling loop
             time.sleep(0.1)
