@@ -47,29 +47,49 @@ except Exception as e:
     print(f"Warning: Could not load CSS: {e}")
 
 # =============================================================================
-# AUDIO HANDLING (Client-Side)
+# AUDIO HANDLING (Client-Side) - Preloaded for instant playback
 # =============================================================================
-def get_audio_html(file_path):
-    """
-    Generates an HTML audio player that autoplays independent of the browser's
-    strict autoplay policies (works best when triggered by UI updates).
-    """
+def get_audio_base64(file_path):
+    """Read audio file and return base64 encoded string."""
     try:
         with open(file_path, "rb") as f:
-            data = f.read()
-            b64_audio = base64.b64encode(data).decode()
-            
-        md = f"""
-            <audio autoplay loop>
-            <source src="data:audio/wav;base64,{b64_audio}" type="audio/wav">
-            Your browser does not support the audio element.
-            </audio>
-            """
-        return md
+            return base64.b64encode(f.read()).decode()
     except FileNotFoundError:
         return ""
 
-AUDIO_HTML = get_audio_html(ALARM_SOUND_PATH)
+AUDIO_B64 = get_audio_base64(ALARM_SOUND_PATH)
+
+# Preload audio at page load - plays instantly when triggered
+AUDIO_PRELOAD_HTML = f"""
+<script>
+    // Create audio element once and keep it ready
+    if (!window.alarmAudio) {{
+        window.alarmAudio = new Audio("data:audio/wav;base64,{AUDIO_B64}");
+        window.alarmAudio.loop = true;
+        window.alarmAudio.preload = "auto";
+        window.alarmAudio.load(); // Preload the audio
+    }}
+</script>
+"""
+
+# Play command - instant because audio is already loaded
+AUDIO_PLAY_HTML = """
+<script>
+    if (window.alarmAudio && window.alarmAudio.paused) {
+        window.alarmAudio.play().catch(e => console.log('Audio play blocked:', e));
+    }
+</script>
+"""
+
+# Stop command
+AUDIO_STOP_HTML = """
+<script>
+    if (window.alarmAudio && !window.alarmAudio.paused) {
+        window.alarmAudio.pause();
+        window.alarmAudio.currentTime = 0;
+    }
+</script>
+"""
 
 # =============================================================================
 # VIDEO PROCESSOR CLASS
@@ -401,28 +421,35 @@ def main():
     """)
     
     # ==========================================================================
-    # PLACEHOLDER FOR CLIENT-SIDE AUDIO
+    # PRELOAD AUDIO FOR INSTANT PLAYBACK
     # ==========================================================================
+    st.markdown(AUDIO_PRELOAD_HTML, unsafe_allow_html=True)
+    
+    # Placeholder for audio control scripts
     sound_placeholder = st.empty()
     
     # ==========================================================================
     # POLLING LOOP FOR AUDIO TRIGGER
     # ==========================================================================
     if ctx.state.playing:
+        last_drowsy_state = False
         while True:
             if ctx.video_processor:
                 drowsy = False
                 with ctx.video_processor.frame_lock:
                     drowsy = ctx.video_processor.alarm_on
                 
-                if drowsy:
-                    # Client-side audio: Inject HTML audio player into browser
-                    sound_placeholder.markdown(AUDIO_HTML, unsafe_allow_html=True)
-                else:
-                    # Remove audio when not drowsy
-                    sound_placeholder.empty()
+                # Only send command when state changes (more efficient)
+                if drowsy and not last_drowsy_state:
+                    # Play instantly - audio is already preloaded
+                    sound_placeholder.markdown(AUDIO_PLAY_HTML, unsafe_allow_html=True)
+                elif not drowsy and last_drowsy_state:
+                    # Stop audio
+                    sound_placeholder.markdown(AUDIO_STOP_HTML, unsafe_allow_html=True)
+                
+                last_drowsy_state = drowsy
             
-            # Faster polling for reduced audio delay (50ms)
+            # Fast polling (50ms)
             time.sleep(0.05)
     
     # ==========================================================================
