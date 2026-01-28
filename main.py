@@ -422,8 +422,8 @@ def main():
                     # Remove audio when not drowsy
                     sound_placeholder.empty()
             
-            # Prevent high CPU usage in polling loop
-            time.sleep(0.1)
+            # Faster polling for reduced audio delay (50ms)
+            time.sleep(0.05)
     
     # ==========================================================================
     # FOOTER
